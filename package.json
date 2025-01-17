@@ -33,14 +33,22 @@
       "codeseeker-sidebar": [
         {
           "type": "webview",
+          "id": "codeseeker.topbar",
+          "name": "Topbar"
+        },
+        {
+          "type": "webview",
           "id": "codeseeker.modelSettings",
-          "name": "Model Settings"
+          "name": "Model Settings",
+          "when": "coodseeker.modelSettingsViewEnabled"
         },
         {
           "type": "webview",
           "id": "codeseeker.searchView",
-          "name": "CodeSeeker Search"
+          "name": "CodeSeeker Search",
+          "when": "codeseeker.searchViewEnabled"
         }
+
       ]
     }
   },
@@ -61,5 +69,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.35"
   }
 }

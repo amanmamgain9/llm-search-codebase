@@ -4,6 +4,7 @@ import { ModelSettingsViewProvider } from './ui/views/ModelSettingsViewProvider'
 import { registerSearchCommands } from './commands/searchCommands';
 import { ViewStateManager } from './services/viewStateManager';
 import { AIService } from './services/aiService';
+import { TopBarViewProvider } from './ui/views/TopBarViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize ViewStateManager
@@ -22,9 +23,16 @@ export function activate(context: vscode.ExtensionContext) {
         viewStateManager,
         aiService
     );
+
+    const topbarViewProvider = new TopBarViewProvider(
+        context.extensionUri,
+        viewStateManager
+    );
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ModelSettingsViewProvider.viewType, modelSettingsProvider),
-        vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, searchProvider)
+        vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, searchProvider),
+        vscode.window.registerWebviewViewProvider(TopBarViewProvider.viewType, topbarViewProvider)
     );
 
     // Register commands
