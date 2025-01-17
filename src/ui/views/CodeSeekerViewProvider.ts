@@ -1,30 +1,28 @@
 import * as vscode from 'vscode';
-import { ICodeSeekerViewProvider, ModelConfig, ModelConfigurationProvider } from '../../types/interfaces';
+import { ICodeSeekerViewProvider } from '../../types/interfaces';
 import { ViewStateManager } from '../../services/viewStateManager';
+import { AIService } from '../../services/aiService';
+
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _viewStateManager: ViewStateManager
+        private readonly _viewStateManager: ViewStateManager,
+        private readonly _aiService: AIService
     ) { }
 
-    public updateModelConfig(config: ModelConfig) {
-        if (this._view) {
-            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-        }
-    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
-        // if (!this._modelConfigProvider.isConfigured()) {
-        //     webviewView.webview.html = this._getUnconfiguredHtml();
-        //     return;
-        // }
+        if (!this._aiService.isConfigured()) {
+            this._viewStateManager.showView('codeseeker.modelSettings');
+            return;
+        }
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,

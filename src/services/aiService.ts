@@ -7,7 +7,6 @@ export class AIService {
     private static readonly CONFIG_KEY = 'com.codeseeker.aiconfig';
     private config?: ModelConfig;
     
-    // More descriptive names that reflect their actual purpose
     private primaryModel?: IModelService;
     private secondaryModel?: IModelService;
 
@@ -22,14 +21,54 @@ export class AIService {
         return AIService.instance;
     }
 
-    private loadConfig(): void {
+    public getSupportedModels() {
+        return ModelServiceFactory.getSupportedModels();
+    }
+
+    private migrateConfig(oldConfig: ModelConfig): ModelConfig {
+        const newConfig = { ...oldConfig };
+        
+        if (!ModelServiceFactory.isModelSupported(oldConfig.majorModel)) {
+            newConfig.majorModel = ModelServiceFactory.DEFAULT_MODEL;
+            vscode.window.showInformationMessage(
+                `Migrated major model from ${oldConfig.majorModel} to ${ModelServiceFactory.DEFAULT_MODEL}`
+            );
+        }
+
+        if (!ModelServiceFactory.isModelSupported(oldConfig.minorModel)) {
+            newConfig.minorModel = ModelServiceFactory.DEFAULT_MODEL;
+            vscode.window.showInformationMessage(
+                `Migrated minor model from ${oldConfig.minorModel} to ${ModelServiceFactory.DEFAULT_MODEL}`
+            );
+        }
+
+        return newConfig;
+    }
+
+    private async loadConfig(): Promise<void> {
         const storedConfig = this.context.globalState.get<ModelConfig>(AIService.CONFIG_KEY);
         if (storedConfig) {
-            this.initializeModels(storedConfig);
+            if (!ModelServiceFactory.isModelSupported(storedConfig.majorModel) || 
+                !ModelServiceFactory.isModelSupported(storedConfig.minorModel)) {
+                
+                const migratedConfig = this.migrateConfig(storedConfig);
+                await this.context.globalState.update(AIService.CONFIG_KEY, migratedConfig);
+                await this.initializeModels(migratedConfig);
+            } else {
+                await this.initializeModels(storedConfig);
+            }
         }
     }
 
     public async saveConfig(newConfig: ModelConfig): Promise<void> {
+        // Validate models before saving
+        if (!ModelServiceFactory.isModelSupported(newConfig.majorModel)) {
+            throw new Error(`Unsupported major model: ${newConfig.majorModel}`);
+        }
+        if (!ModelServiceFactory.isModelSupported(newConfig.minorModel)) {
+            throw new Error(`Unsupported minor model: ${newConfig.minorModel}`);
+        }
+
         await this.context.globalState.update(AIService.CONFIG_KEY, newConfig);
         await this.initializeModels(newConfig);
     }

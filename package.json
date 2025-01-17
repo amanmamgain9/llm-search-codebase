@@ -10,7 +10,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:codeseeker.search",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",

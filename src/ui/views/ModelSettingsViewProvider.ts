@@ -1,39 +1,31 @@
 import * as vscode from 'vscode';
-import { ModelConfig } from '../../types/interfaces';
+import { ModelConfig } from '../../types/modelTypes';
 import { ViewStateManager } from '../../services/viewStateManager';
+import { AIService } from '../../services/aiService';
 
 export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codeseeker.modelSettings';
     private _view?: vscode.WebviewView;
-    private _config: ModelConfig = {
-        majorModel: '',
-        minorModel: '',
-        majorModelApiKey: '',
-        minorModelApiKey: '',
-        useSameModel: false
-    };
+    private _config?: ModelConfig;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _onConfigUpdate: (config: ModelConfig) => void,
-        private readonly _context: vscode.ExtensionContext,
-        private readonly _viewStateManager: ViewStateManager
+        private readonly _viewStateManager: ViewStateManager,
+        private readonly _aiService: AIService
     ) {
         this._loadStoredConfig();
     }
 
     private _loadStoredConfig() {
-        const storedConfig = this._context.globalState.get<ModelConfig>('modelConfig');
+        const storedConfig = this._aiService.getConfig();
         if (storedConfig) {
             this._config = storedConfig;
-            this._onConfigUpdate(this._config);
         }
     }
 
     private async _saveConfig(config: ModelConfig) {
         this._config = config;
-        await this._context.globalState.update('modelConfig', config);
-        this._onConfigUpdate(this._config);
+        await this._aiService.saveConfig(config);
 
         // After successful save, switch to the search view
         await this._viewStateManager.showView('codeseeker.searchView');
@@ -56,9 +48,11 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'webviewReady':
+                    // Send both config and supported models
                     webviewView.webview.postMessage({ 
-                        type: 'loadConfig', 
-                        value: this._config 
+                        type: 'initialize', 
+                        config: this._config,
+                        supportedModels: this._aiService.getSupportedModels()
                     });
                     break;
                 case 'saveConfig':
@@ -129,19 +123,13 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
                     
                     <div class="form-group">
                         <label>Major Model</label>
-                        <select id="majorModel">
-                            <option value="gpt-4">GPT-4</option>
-                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        </select>
+                        <select id="majorModel"></select>
                         <input type="password" id="majorApiKey" placeholder="Major Model API Key">
                     </div>
 
                     <div id="minorModelSection" class="form-group">
                         <label>Minor Model</label>
-                        <select id="minorModel">
-                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                            <option value="gpt-4">GPT-4</option>
-                        </select>
+                        <select id="minorModel"></select>
                         <input type="password" id="minorApiKey" placeholder="Minor Model API Key">
                     </div>
 
@@ -152,37 +140,57 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
                     const vscode = acquireVsCodeApi();
                     const useSameModelCheckbox = document.getElementById('useSameModel');
                     const minorModelSection = document.getElementById('minorModelSection');
+                    const majorModelSelect = document.getElementById('majorModel');
+                    const minorModelSelect = document.getElementById('minorModel');
                     const saveButton = document.getElementById('saveButton');
                     
-                    // Notify backend that webview is ready to receive config
+                    // Notify backend that webview is ready to receive data
                     vscode.postMessage({ type: 'webviewReady' });
 
-                    // Handle receiving saved config from extension
+                    // Populate select options with supported models
+                    function populateModelOptions(selectElement, models, selectedValue) {
+                        selectElement.innerHTML = '';
+                        models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = model.name;
+                            if (model.id === selectedValue) {
+                                option.selected = true;
+                            }
+                            selectElement.appendChild(option);
+                        });
+                    }
+
+                    // Handle receiving initialization data from extension
                     window.addEventListener('message', event => {
                         const message = event.data;
-                        if (message.type === 'loadConfig') {
-                            const config = message.value;
-                            document.getElementById('majorModel').value = config.majorModel || 'gpt-4';
-                            document.getElementById('minorModel').value = config.minorModel || 'gpt-3.5-turbo';
-                            document.getElementById('majorApiKey').value = config.majorModelApiKey || '';
-                            document.getElementById('minorApiKey').value = config.minorModelApiKey || '';
-                            document.getElementById('useSameModel').checked = config.useSameModel || false;
-                            minorModelSection.style.display = config.useSameModel ? 'none' : 'block';
+                        if (message.type === 'initialize') {
+                            const { config, supportedModels } = message;
+                            
+                            // Populate model dropdowns
+                            populateModelOptions(majorModelSelect, supportedModels, config?.majorModel);
+                            populateModelOptions(minorModelSelect, supportedModels, config?.minorModel);
+
+                            // Set other form values
+                            document.getElementById('majorApiKey').value = config?.majorModelApiKey || '';
+                            document.getElementById('minorApiKey').value = config?.minorModelApiKey || '';
+                            document.getElementById('useSameModel').checked = config?.useSameModel || false;
+                            minorModelSection.style.display = config?.useSameModel ? 'none' : 'block';
                         }
                     });
 
                     useSameModelCheckbox.addEventListener('change', (e) => {
                         minorModelSection.style.display = e.target.checked ? 'none' : 'block';
                         if (e.target.checked) {
-                            document.getElementById('minorModel').value = document.getElementById('majorModel').value;
+                            minorModelSelect.value = majorModelSelect.value;
                             document.getElementById('minorApiKey').value = document.getElementById('majorApiKey').value;
                         }
                     });
 
                     saveButton.addEventListener('click', () => {
                         const config = {
-                            majorModel: document.getElementById('majorModel').value,
-                            minorModel: document.getElementById('minorModel').value,
+                            majorModel: majorModelSelect.value,
+                            minorModel: minorModelSelect.value,
                             majorModelApiKey: document.getElementById('majorApiKey').value,
                             minorModelApiKey: document.getElementById('minorApiKey').value,
                             useSameModel: document.getElementById('useSameModel').checked
@@ -218,14 +226,5 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
             </body>
             </html>
         `;
-    }
-
-    public getConfig(): ModelConfig {
-        return this._config;
-    }
-
-    public isConfigured(): boolean {
-        return Boolean(this._config.majorModelApiKey && 
-            (this._config.useSameModel || this._config.minorModelApiKey));
     }
 }
