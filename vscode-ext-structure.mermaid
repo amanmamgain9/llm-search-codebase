@@ -1,0 +1,72 @@
+graph TD
+    subgraph "Project Root"
+        EP[src/extension.ts]
+        PKG[package.json]
+        
+        subgraph "Core Extension Setup"
+            EP --> ACT[src/activation.ts]
+            EP --> REG[src/registration.ts]
+            ACT --> CONF[src/configuration.ts]
+        end
+
+        subgraph "Language Features"
+            LF[src/language/]
+            LF --> COMP[completionProvider.ts]
+            LF --> HOV[hoverProvider.ts]
+            LF --> DEF[definitionProvider.ts]
+            LF --> SYM[symbolProvider.ts]
+            LF --> DIAG[diagnosticsManager.ts]
+        end
+
+        subgraph "UI Components"
+            UI[src/ui/]
+            UI --> VIEW[views/]
+            UI --> WV[webview/]
+            UI --> TREE[treeDataProvider.ts]
+            UI --> STATUS[statusBar.ts]
+        end
+
+        subgraph "Services"
+            SVC[src/services/]
+            SVC --> PARSE[parser.ts]
+            SVC --> LANG[languageService.ts]
+            SVC --> CACHE[cacheService.ts]
+            SVC --> UTIL[utilities.ts]
+        end
+
+        subgraph "Commands"
+            CMD[src/commands/]
+            CMD --> CCMD[codeActions.ts]
+            CMD --> UCMD[userCommands.ts]
+            CMD --> QFIX[quickFixes.ts]
+        end
+        
+        subgraph "Types & Interfaces"
+            TYP[src/types/]
+            TYP --> ITYP[interfaces.ts]
+            TYP --> TTYP[types.ts]
+            TYP --> ETYP[enums.ts]
+        end
+    end
+
+    %% Connections
+    EP --> LF
+    EP --> UI
+    EP --> SVC
+    EP --> CMD
+    
+    %% Service Dependencies
+    SVC --> TYP
+    LF --> SVC
+    UI --> SVC
+    CMD --> SVC
+
+    classDef core fill:#e1f5fe,stroke:#01579b
+    classDef feature fill:#f3e5f5,stroke:#4a148c
+    classDef service fill:#fff3e0,stroke:#e65100
+    classDef config fill:#e8f5e9,stroke:#2e7d32
+
+    class EP,ACT,REG,CONF core
+    class LF,UI,CMD feature
+    class SVC service
+    class PKG,TYP config

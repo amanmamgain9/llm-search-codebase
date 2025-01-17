@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant U as User
+    participant C as Command
+    participant S as Search Service
+    participant D as Document Provider
+    participant H as Highlight Provider
+    participant E as Editor
+
+    Note over U,E: Extension Activation
+    U->>C: Triggers search command
+    
+    Note over C,S: Search Process
+    C->>S: Initialize search
+    S->>D: Request workspace documents
+    D-->>S: Return document URIs
+    
+    loop For each document
+        S->>D: Read document content
+        D-->>S: Return text content
+        S->>S: Search for matches
+    end
+    
+    Note over S,H: Highlighting Process
+    S->>H: Send match locations
+    H->>E: Create decorations
+    H->>E: Apply highlight ranges
+    
+    Note over E: Display
+    E-->>U: Show highlighted results
+    
+    Note over U,E: Updates
+    U->>C: Change search criteria
+    C->>S: Update search
+    S->>H: Update matches
+    H->>E: Refresh highlights
