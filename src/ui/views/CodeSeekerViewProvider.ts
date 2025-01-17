@@ -20,8 +20,9 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         _token: vscode.CancellationToken,
     ) {
         if (!this._aiService.isConfigured()) {
-            this._viewStateManager.showView('codeseeker.modelSettings');
+            webviewView.webview.html = this._getUnconfiguredHtml();
             return;
+            // return;
         }
         this._view = webviewView;
         webviewView.webview.options = {

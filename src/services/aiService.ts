@@ -102,6 +102,7 @@ export class AIService {
     }
 
     public isConfigured(): boolean {
+        console.log(this.config);
         return Boolean(
             this.config?.majorApiKey && 
             (this.config.useSameModel || this.config.minorApiKey)
