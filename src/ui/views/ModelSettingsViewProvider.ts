@@ -16,8 +16,8 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
         this._loadStoredConfig();
     }
 
-    private _loadStoredConfig() {
-        const storedConfig = this._aiService.getConfig();
+    private async _loadStoredConfig() {
+        const storedConfig = await this._aiService.getConfig();
         if (storedConfig) {
             this._config = storedConfig;
         }

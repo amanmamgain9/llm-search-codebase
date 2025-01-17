@@ -6,12 +6,13 @@ export class AIService {
     private static instance: AIService;
     private static readonly CONFIG_KEY = 'com.codeseeker.aiconfig';
     private config?: ModelConfig;
+    private configLoaded: boolean = false;
     
     private primaryModel?: IModelService;
     private secondaryModel?: IModelService;
 
     private constructor(private readonly context: vscode.ExtensionContext) {
-        this.loadConfig();
+        this.initializeConfig();
     }
 
     public static getInstance(context: vscode.ExtensionContext): AIService {
@@ -19,6 +20,18 @@ export class AIService {
             AIService.instance = new AIService(context);
         }
         return AIService.instance;
+    }
+
+    private async initializeConfig(): Promise<void> {
+        await this.loadConfig();
+        this.configLoaded = true;
+    }
+
+    private async ensureConfigLoaded(): Promise<void> {
+        if (!this.configLoaded) {
+            await this.loadConfig();
+            this.configLoaded = true;
+        }
     }
 
     public getSupportedModels() {
@@ -61,6 +74,8 @@ export class AIService {
     }
 
     public async saveConfig(newConfig: ModelConfig): Promise<void> {
+        await this.ensureConfigLoaded();
+
         // Validate models before saving
         if (!ModelServiceFactory.isModelSupported(newConfig.majorModel)) {
             throw new Error(`Unsupported major model: ${newConfig.majorModel}`);
@@ -97,12 +112,13 @@ export class AIService {
         }
     }
 
-    public getConfig(): ModelConfig | undefined {
+    public async getConfig(): Promise<ModelConfig | undefined> {
+        await this.ensureConfigLoaded();
         return this.config ? { ...this.config } : undefined;
     }
 
-    public isConfigured(): boolean {
-        console.log(this.config);
+    public async isConfigured(): Promise<boolean> {
+        await this.ensureConfigLoaded();
         return Boolean(
             this.config?.majorApiKey && 
             (this.config.useSameModel || this.config.minorApiKey)
@@ -110,6 +126,7 @@ export class AIService {
     }
 
     public async queryPrimaryModel(prompt: string): Promise<ModelResponse> {
+        await this.ensureConfigLoaded();
         if (!this.primaryModel) {
             throw new Error('Primary model not configured');
         }
@@ -117,6 +134,7 @@ export class AIService {
     }
 
     public async querySecondaryModel(prompt: string): Promise<ModelResponse> {
+        await this.ensureConfigLoaded();
         if (!this.secondaryModel) {
             throw new Error('Secondary model not configured');
         }
@@ -124,6 +142,7 @@ export class AIService {
     }
 
     public async testPrimaryModel(): Promise<boolean> {
+        await this.ensureConfigLoaded();
         if (!this.primaryModel) {
             return false;
         }
@@ -131,6 +150,7 @@ export class AIService {
     }
 
     public async testSecondaryModel(): Promise<boolean> {
+        await this.ensureConfigLoaded();
         if (!this.secondaryModel) {
             return false;
         }
