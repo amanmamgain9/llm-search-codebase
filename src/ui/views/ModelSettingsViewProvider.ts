@@ -14,7 +14,8 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _onConfigUpdate: (config: ModelConfig) => void
+        private readonly _onConfigUpdate: (config: ModelConfig) => void,
+        private readonly _viewStateManager: ViewStateManager
     ) { }
 
     public resolveWebviewView(

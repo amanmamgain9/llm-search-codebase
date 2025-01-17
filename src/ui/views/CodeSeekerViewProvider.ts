@@ -7,7 +7,8 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _modelConfigProvider: ModelConfigurationProvider
+        private readonly _modelConfigProvider: ModelConfigurationProvider,
+        private readonly _viewStateManager: ViewStateManager
     ) { }
 
     public updateModelConfig(config: ModelConfig) {
