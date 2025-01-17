@@ -3,17 +3,14 @@ import { ICodeSeekerViewProvider, ModelConfig, ModelConfigurationProvider } from
 import { ViewStateManager } from '../../services/viewStateManager';
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
-    private _modelConfig?: ModelConfig;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _modelConfigProvider: ModelConfigurationProvider,
         private readonly _viewStateManager: ViewStateManager
     ) { }
 
     public updateModelConfig(config: ModelConfig) {
-        this._modelConfig = config;
         if (this._view) {
             this._view.webview.html = this._getHtmlForWebview(this._view.webview);
         }
@@ -24,10 +21,10 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
-        if (!this._modelConfigProvider.isConfigured()) {
-            webviewView.webview.html = this._getUnconfiguredHtml();
-            return;
-        }
+        // if (!this._modelConfigProvider.isConfigured()) {
+        //     webviewView.webview.html = this._getUnconfiguredHtml();
+        //     return;
+        // }
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,

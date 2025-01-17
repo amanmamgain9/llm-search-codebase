@@ -12,6 +12,14 @@ export function activate(context: vscode.ExtensionContext) {
     const viewStateManager = ViewStateManager.getInstance(context);
     
     // Register Model Settings Provider
+    
+    
+    // Register Search Provider
+    const searchProvider = new CodeSeekerViewProvider(
+        context.extensionUri,
+        viewStateManager
+    );
+
     const modelSettingsProvider = new ModelSettingsViewProvider(
         context.extensionUri,
         (config) => {
@@ -21,14 +29,6 @@ export function activate(context: vscode.ExtensionContext) {
         context,
         viewStateManager
     );
-    
-    // Register Search Provider
-    const searchProvider = new CodeSeekerViewProvider(
-        context.extensionUri,
-        modelSettingsProvider,
-        viewStateManager
-    );
-    
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ModelSettingsViewProvider.viewType, modelSettingsProvider),
         vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, searchProvider)
