@@ -17,7 +17,9 @@ export function activate(context: vscode.ExtensionContext) {
         (config) => {
             modelConfig = config;
             searchProvider.updateModelConfig(config);
-        }
+        },
+        context,
+        viewStateManager
     );
     
     // Register Search Provider

@@ -15,12 +15,29 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _onConfigUpdate: (config: ModelConfig) => void
+        private readonly _onConfigUpdate: (config: ModelConfig) => void,
+        private readonly _context: vscode.ExtensionContext,
+        private readonly _viewStateManager: ViewStateManager
     ) {
-        this._viewStateManager = ViewStateManager.getInstance(undefined as any);
+        this._loadStoredConfig();
     }
 
-    private _viewStateManager: ViewStateManager;
+    private _loadStoredConfig() {
+        const storedConfig = this._context.globalState.get<ModelConfig>('modelConfig');
+        if (storedConfig) {
+            this._config = storedConfig;
+            this._onConfigUpdate(this._config);
+        }
+    }
+
+    private async _saveConfig(config: ModelConfig) {
+        this._config = config;
+        await this._context.globalState.update('modelConfig', config);
+        this._onConfigUpdate(this._config);
+
+        // After successful save, switch to the search view
+        await this._viewStateManager.showView('codeseeker.searchView');
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -38,10 +55,21 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
+                case 'webviewReady':
+                    webviewView.webview.postMessage({ 
+                        type: 'loadConfig', 
+                        value: this._config 
+                    });
+                    break;
                 case 'saveConfig':
-                    this._config = data.value;
-                    this._onConfigUpdate(this._config);
-                    vscode.window.showInformationMessage('Model settings saved successfully!');
+                    this._saveConfig(data.value).then(() => {
+                        vscode.window.showInformationMessage('Model settings saved successfully!');
+                    }).catch(error => {
+                        vscode.window.showErrorMessage('Failed to save model settings: ' + error.message);
+                    });
+                    break;
+                case 'error':
+                    vscode.window.showErrorMessage(data.message);
                     break;
             }
         });
@@ -56,11 +84,40 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Model Settings</title>
                 <style>
-                    .container { padding: 10px; }
-                    .form-group { margin-bottom: 15px; }
-                    label { display: block; margin-bottom: 5px; }
-                    input, select { width: 100%; padding: 5px; margin-bottom: 10px; }
-                    button { width: 100%; padding: 8px; }
+                    .container { 
+                        padding: 10px; 
+                    }
+                    .form-group { 
+                        margin-bottom: 15px; 
+                    }
+                    label { 
+                        display: block; 
+                        margin-bottom: 5px; 
+                        color: var(--vscode-foreground);
+                    }
+                    input[type="password"], 
+                    select { 
+                        width: 100%; 
+                        padding: 5px; 
+                        margin-bottom: 10px;
+                        background: var(--vscode-input-background);
+                        color: var(--vscode-input-foreground);
+                        border: 1px solid var(--vscode-input-border);
+                    }
+                    input[type="checkbox"] {
+                        margin-bottom: 10px;
+                    }
+                    button { 
+                        width: 100%; 
+                        padding: 8px;
+                        background: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                        border: none;
+                        cursor: pointer;
+                    }
+                    button:hover {
+                        background: var(--vscode-button-hoverBackground);
+                    }
                 </style>
             </head>
             <body>
@@ -96,6 +153,23 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
                     const useSameModelCheckbox = document.getElementById('useSameModel');
                     const minorModelSection = document.getElementById('minorModelSection');
                     const saveButton = document.getElementById('saveButton');
+                    
+                    // Notify backend that webview is ready to receive config
+                    vscode.postMessage({ type: 'webviewReady' });
+
+                    // Handle receiving saved config from extension
+                    window.addEventListener('message', event => {
+                        const message = event.data;
+                        if (message.type === 'loadConfig') {
+                            const config = message.value;
+                            document.getElementById('majorModel').value = config.majorModel || 'gpt-4';
+                            document.getElementById('minorModel').value = config.minorModel || 'gpt-3.5-turbo';
+                            document.getElementById('majorApiKey').value = config.majorModelApiKey || '';
+                            document.getElementById('minorApiKey').value = config.minorModelApiKey || '';
+                            document.getElementById('useSameModel').checked = config.useSameModel || false;
+                            minorModelSection.style.display = config.useSameModel ? 'none' : 'block';
+                        }
+                    });
 
                     useSameModelCheckbox.addEventListener('change', (e) => {
                         minorModelSection.style.display = e.target.checked ? 'none' : 'block';
@@ -115,12 +189,18 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
                         };
 
                         if (!config.majorModelApiKey) {
-                            vscode.postMessage({ type: 'error', message: 'Major model API key is required' });
+                            vscode.postMessage({ 
+                                type: 'error', 
+                                message: 'Major model API key is required' 
+                            });
                             return;
                         }
 
                         if (!config.useSameModel && !config.minorModelApiKey) {
-                            vscode.postMessage({ type: 'error', message: 'Minor model API key is required' });
+                            vscode.postMessage({ 
+                                type: 'error', 
+                                message: 'Minor model API key is required' 
+                            });
                             return;
                         }
 
