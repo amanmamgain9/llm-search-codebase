@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ViewStateManager } from '../../services/viewStateManager';
+import { AIService } from '../../services/aiService';
 
 export class TopBarViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codeseeker.topbar';
@@ -7,7 +8,8 @@ export class TopBarViewProvider implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _viewStateManager: ViewStateManager
+        private readonly _viewStateManager: ViewStateManager,
+        private readonly _aiService: AIService
     ) {}
 
     public resolveWebviewView(
@@ -24,8 +26,24 @@ export class TopBarViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+        // Listen for view state changes
+        this._viewStateManager.onViewStateChanged(async (viewId) => {
+            if (this._view) {
+                const viewState = this._viewStateManager.getViewState(viewId);
+                if (viewState?.isVisible) {
+                    this._view.webview.postMessage({ 
+                        type: 'updateActiveView', 
+                        viewId: viewId 
+                    });
+                }
+            }
+        });
+
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
+                case 'webviewReady':
+                    this._initializeView();
+                    break;
                 case 'switchView':
                     this._viewStateManager.showView(data.viewId);
                     break;
@@ -33,9 +51,26 @@ export class TopBarViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
+    private async _initializeView() {
+        if (!this._view) return;
+
+        const isConfigured = await this._aiService.isConfigured();
+        const initialViewId = isConfigured ? 
+            'codeseeker.searchView' : 
+            'codeseeker.modelSettings';
+
+        // Initialize the view state
+        await this._viewStateManager.showView(initialViewId);
+    }
+
     private _getHtmlForWebview(webview: vscode.Webview) {
-        // Get path to codicons
-        const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css'));
+        const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this._extensionUri, 
+            'node_modules', 
+            '@vscode/codicons', 
+            'dist', 
+            'codicon.css'
+        ));
 
         return `
             <!DOCTYPE html>
@@ -92,6 +127,9 @@ export class TopBarViewProvider implements vscode.WebviewViewProvider {
                     const searchBtn = document.getElementById('searchBtn');
                     const settingsBtn = document.getElementById('settingsBtn');
                     
+                    // Notify backend that webview is ready
+                    vscode.postMessage({ type: 'webviewReady' });
+                    
                     // Toggle active state and switch views
                     function switchView(viewId) {
                         searchBtn.classList.toggle('active', viewId === 'codeseeker.searchView');
@@ -108,7 +146,7 @@ export class TopBarViewProvider implements vscode.WebviewViewProvider {
                         switchView('codeseeker.modelSettings');
                     });
 
-                    // Set initial active state
+                    // Handle messages from extension
                     window.addEventListener('message', event => {
                         const message = event.data;
                         if (message.type === 'updateActiveView') {

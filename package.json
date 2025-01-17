@@ -40,7 +40,7 @@
           "type": "webview",
           "id": "codeseeker.modelSettings",
           "name": "Model Settings",
-          "when": "coodseeker.modelSettingsViewEnabled"
+          "when": "codseeker.modelSettingsViewEnabled"
         },
         {
           "type": "webview",

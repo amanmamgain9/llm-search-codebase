@@ -26,7 +26,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     const topbarViewProvider = new TopBarViewProvider(
         context.extensionUri,
-        viewStateManager
+        viewStateManager,
+        aiService
     );
 
     context.subscriptions.push(
