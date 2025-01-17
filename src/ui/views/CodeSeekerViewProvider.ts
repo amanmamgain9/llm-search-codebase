@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ICodeSeekerViewProvider, ModelConfig, ModelConfigurationProvider } from '../../types/interfaces';
+import { ViewStateManager } from '../../services/viewStateManager';
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
     private _modelConfig?: ModelConfig;

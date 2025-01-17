@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ModelConfig } from '../../types/interfaces';
+import { ViewStateManager } from '../../services/viewStateManager';
 
 export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codeseeker.modelSettings';
