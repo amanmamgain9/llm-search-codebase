@@ -2,10 +2,16 @@ import * as vscode from 'vscode';
 import { OpenAI } from 'openai';
 import * as path from 'path';
 import * as fs from 'fs';
+import { CodeSeekerViewProvider } from './CodeSeekerViewProvider';
 
 let outputChannel: vscode.OutputChannel;
 
 export async function activate(context: vscode.ExtensionContext) {
+    // Register CodeSeeker View Provider
+    const provider = new CodeSeekerViewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, provider)
+    );
     outputChannel = vscode.window.createOutputChannel('CodeSeeker');
     outputChannel.show();
     outputChannel.appendLine('CodeSeeker extension activated');
@@ -14,8 +20,8 @@ export async function activate(context: vscode.ExtensionContext) {
         apiKey: process.env.OPENAI_API_KEY
     });
 
-    let disposable = vscode.commands.registerCommand('codeseeker.search', async () => {
-        const question = await vscode.window.showInputBox({
+    let disposable = vscode.commands.registerCommand('codeseeker.search', async (questionFromView?: string) => {
+        const question = questionFromView || await vscode.window.showInputBox({
             placeHolder: 'Enter your code search question...',
             prompt: 'Example: Which areas handle image processing?'
         });
