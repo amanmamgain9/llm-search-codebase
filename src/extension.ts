@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { CodeSeekerViewProvider } from './CodeSeekerViewProvider';
+import { CodeSeekerViewProvider } from './ui/views/CodeSeekerViewProvider';
+import { registerSearchCommands } from './commands/searchCommands';
 
 export function activate(context: vscode.ExtensionContext) {
     // Register CodeSeeker View Provider
@@ -8,11 +9,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, provider)
     );
 
-    let disposable = vscode.commands.registerCommand('codeseeker.search', async (query: string) => {
-        vscode.window.showInformationMessage(`Searching for: ${query}`);
-    });
-
-    context.subscriptions.push(disposable);
+    // Register commands
+    registerSearchCommands(context);
 }
 
 export function deactivate() {}

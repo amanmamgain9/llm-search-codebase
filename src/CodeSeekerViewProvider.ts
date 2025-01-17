@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
+import { ICodeSeekerViewProvider } from '../../types/interfaces';
 
-export class CodeSeekerViewProvider implements vscode.WebviewViewProvider {
+export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
