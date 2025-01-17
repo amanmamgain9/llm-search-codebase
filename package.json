@@ -34,6 +34,11 @@
       "codeseeker-sidebar": [
         {
           "type": "webview",
+          "id": "codeseeker.modelSettings",
+          "name": "Model Settings"
+        },
+        {
+          "type": "webview",
           "id": "codeseeker.searchView",
           "name": "CodeSeeker Search"
         }

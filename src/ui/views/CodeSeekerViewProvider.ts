@@ -1,18 +1,33 @@
 import * as vscode from 'vscode';
-import { ICodeSeekerViewProvider } from '../../types/interfaces';
+import { ICodeSeekerViewProvider, ModelConfig, ModelConfigurationProvider } from '../../types/interfaces';
 
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
+    private _view?: vscode.WebviewView;
+    private _modelConfig?: ModelConfig;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
+        private readonly _modelConfigProvider: ModelConfigurationProvider
     ) { }
+
+    public updateModelConfig(config: ModelConfig) {
+        this._modelConfig = config;
+        if (this._view) {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
+        if (!this._modelConfigProvider.isConfigured()) {
+            webviewView.webview.html = this._getUnconfiguredHtml();
+            return;
+        }
+        this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
@@ -31,6 +46,28 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
                     break;
             }
         });
+    }
+
+    private _getUnconfiguredHtml() {
+        return `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>CodeSeeker Search</title>
+                <style>
+                    .container { padding: 20px; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h3>Model Configuration Required</h3>
+                    <p>Please configure your models in the Model Settings view before using the search.</p>
+                </div>
+            </body>
+            </html>
+        `;
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
