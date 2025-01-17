@@ -3,7 +3,13 @@ import { OpenAI } from 'openai';
 import * as path from 'path';
 import * as fs from 'fs';
 
+let outputChannel: vscode.OutputChannel;
+
 export async function activate(context: vscode.ExtensionContext) {
+    outputChannel = vscode.window.createOutputChannel('CodeSeeker');
+    outputChannel.show();
+    outputChannel.appendLine('CodeSeeker extension activated');
+
     const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
     });
@@ -28,8 +34,12 @@ export async function activate(context: vscode.ExtensionContext) {
             cancellable: true
         }, async (progress) => {
             try {
+                outputChannel.appendLine(`Starting search for question: ${question}`);
                 const relevantFiles = await findRelevantFiles(workspaceFolders[0].uri.fsPath, openai, question);
+                outputChannel.appendLine(`Found ${relevantFiles.length} relevant files`);
+                
                 const analysis = await analyzeRelevantFiles(relevantFiles, openai, question);
+                outputChannel.appendLine('Analysis complete');
                 
                 // Show results in a new editor
                 const doc = await vscode.workspace.openTextDocument({
