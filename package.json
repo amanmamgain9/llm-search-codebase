@@ -17,7 +17,13 @@
     "commands": [
       {
         "command": "codeseeker.search",
-        "title": "CodeSeeker: Search Codebase"
+        "title": "CodeSeeker: Search Codebase",
+        "icon": "$(search)"
+      },
+      {
+        "command": "codeseeker.openSettings",
+        "title": "CodeSeeker: Open Settings",
+        "icon": "$(gear)"
       }
     ],
     "viewsContainers": {
@@ -48,7 +54,20 @@
           "name": "CodeSeeker Search",
           "when": "codeseeker.searchViewEnabled"
         }
-
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "codeseeker.search",
+          "when": "view == codeseeker.topbar",
+          "group": "navigation"
+        },
+        {
+          "command": "codeseeker.openSettings",
+          "when": "view == codeseeker.topbar",
+          "group": "navigation"
+        }
       ]
     }
   },
