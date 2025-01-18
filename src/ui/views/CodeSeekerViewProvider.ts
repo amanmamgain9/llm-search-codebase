@@ -2,16 +2,37 @@ import * as vscode from 'vscode';
 import { ICodeSeekerViewProvider } from '../../types/interfaces';
 import { ViewStateManager } from '../../services/viewStateManager';
 import { AIService } from '../../services/aiService';
+import { TokenAnalysisService } from '../../services/tokenAnalysisService';
 
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
+    private _tokenAnalysisService: TokenAnalysisService;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
         private readonly _viewStateManager: ViewStateManager,
         private readonly _aiService: AIService
-    ) { }
+    ) {
+        this._tokenAnalysisService = new TokenAnalysisService();
+    }
+
+    private async analyzeProjectTokens() {
+        try {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders) {
+                return;
+            }
+
+            const projectPath = workspaceFolders[0].uri.fsPath;
+            const { totalTokens, fileTokens } = await this._tokenAnalysisService.getProjectTokenCount(projectPath);
+            
+            console.log(`Total tokens in project: ${totalTokens}`);
+            // You might want to store this information or update the UI with it
+        } catch (error) {
+            console.error('Error analyzing project tokens:', error);
+        }
+    }
 
 
     public resolveWebviewView(
@@ -33,6 +54,10 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        
+        // Analyze project tokens after initialization
+        this.analyzeProjectTokens();
+        
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'search':
