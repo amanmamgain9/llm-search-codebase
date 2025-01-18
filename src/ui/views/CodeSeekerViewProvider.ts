@@ -9,6 +9,7 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _tokenAnalysisService: TokenAnalysisService;
     private _totalTokens: number = 0;
     private _analysisComplete: boolean = false;
+    private _estimatedCost: number = 0;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
@@ -40,6 +41,10 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
             
             this._totalTokens = totalTokens;
             this._analysisComplete = true;
+            
+            // Calculate estimated cost using secondary model pricing
+            const pricing = this._aiService.getSecondaryModelPricing();
+            this._estimatedCost = (totalTokens / 1000000) * pricing.inputPricePerMillionTokens;
             
             if (this._view) {
                 this.updateView();
@@ -152,7 +157,8 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
                         <button id="analyzeButton" class="analyze-button">Analyze Project Tokens</button>
                     ` : `
                         <div class="token-info">
-                            Total tokens in project: ${this._totalTokens}
+                            <div>Total tokens in project: ${this._totalTokens}</div>
+                            <div>Estimated cost per query: $${this._estimatedCost.toFixed(4)}</div>
                         </div>
                         <input type="text" id="searchInput" placeholder="Enter your search query..." style="width: 100%; padding: 5px;">
                         <button id="searchButton" style="margin-top: 10px; width: 100%; padding: 5px;">Search</button>
