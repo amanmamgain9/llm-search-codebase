@@ -1,5 +1,6 @@
 import { ModelResponse,
-    IModelService
+    IModelService,
+    ModelPricing
  } from "../../types/modelTypes";
 
 export class AnthropicService implements IModelService {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ModelResponse, ModelConfig, IModelService } from '../types/modelTypes';
+import { ModelResponse, ModelConfig, IModelService, ModelPricing } from '../types/modelTypes';
 import { ModelServiceFactory } from './modelServices/modelServiceFactory';
 
 export class AIService {
