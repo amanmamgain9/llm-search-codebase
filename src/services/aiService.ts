@@ -163,4 +163,18 @@ export class AIService {
         }
         return this.secondaryModel.testConnection();
     }
+
+    public getPrimaryModelPricing(): ModelPricing {
+        if (!this.primaryModel) {
+            throw new Error('Primary model not configured');
+        }
+        return this.primaryModel.getPricing();
+    }
+
+    public getSecondaryModelPricing(): ModelPricing {
+        if (!this.secondaryModel) {
+            throw new Error('Secondary model not configured');
+        }
+        return this.secondaryModel.getPricing();
+    }
 }

@@ -3,7 +3,34 @@ import { ModelResponse,
  } from "../../types/modelTypes";
 
 export class AnthropicService implements IModelService {
+    private static readonly MODEL_PRICING: { [key: string]: ModelPricing } = {
+        'claude-3-opus-20240229': {
+            inputPricePerMillionTokens: 15.0,
+            outputPricePerMillionTokens: 75.0
+        },
+        'claude-3-sonnet-20240229': {
+            inputPricePerMillionTokens: 3.0,
+            outputPricePerMillionTokens: 15.0
+        },
+        'claude-3-haiku-20240229': {
+            inputPricePerMillionTokens: 0.25,
+            outputPricePerMillionTokens: 1.25
+        },
+        'claude-2.1': {
+            inputPricePerMillionTokens: 8.0,
+            outputPricePerMillionTokens: 24.0
+        }
+    };
+
     constructor(private apiKey: string, private model: string) {}
+
+    public getPricing(): ModelPricing {
+        const pricing = AnthropicService.MODEL_PRICING[this.model];
+        if (!pricing) {
+            throw new Error(`Pricing not available for model: ${this.model}`);
+        }
+        return pricing;
+    }
 
     async query(prompt: string): Promise<ModelResponse> {
         try {

@@ -12,7 +12,13 @@ export interface ModelResponse {
     tokenCount?: number;
 }
 
+export interface ModelPricing {
+    inputPricePerMillionTokens: number;
+    outputPricePerMillionTokens: number;
+}
+
 export interface IModelService {
     query(prompt: string): Promise<ModelResponse>;
     testConnection(): Promise<boolean>;
+    getPricing(): ModelPricing;
 }
