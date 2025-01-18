@@ -1,25 +1,21 @@
 import * as vscode from 'vscode';
-
-export interface ViewState {
-    isVisible: boolean;
-    lastActiveTimestamp?: number;
-}
+import { AIService } from './aiService';
 
 export interface ExtensionState {
-    modelSettings: ViewState;
-    searchView: ViewState;
+    expandedViewId?: string;
 }
 
 export class ViewStateManager {
     private static instance: ViewStateManager;
     private state: ExtensionState;
     private context: vscode.ExtensionContext;
-    private readonly _onViewStateChanged: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
-    public readonly onViewStateChanged: vscode.Event<string> = this._onViewStateChanged.event;
+    private aiService: AIService;
+
 
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.state = this.loadState();
+        this.aiService = AIService.getInstance(context);
     }
 
     public static getInstance(context: vscode.ExtensionContext): ViewStateManager {
@@ -30,105 +26,58 @@ export class ViewStateManager {
     }
 
     private loadState(): ExtensionState {
-        const savedState = this.context.globalState.get<ExtensionState>('viewState');
-        return savedState || {
-            modelSettings: { isVisible: false },
-            searchView: { isVisible: false }
-        };
+        return this.context.globalState.get<ExtensionState>('viewState') || {};
     }
 
     public async saveState(): Promise<void> {
         await this.context.globalState.update('viewState', this.state);
     }
 
-    private async updateContextVariables(viewId: string, isVisible: boolean) {
-        switch (viewId) {
-            case 'codeseeker.modelSettings':
-                await vscode.commands.executeCommand('setContext', 'codeseeker.modelSettingsViewEnabled', isVisible);
-                break;
-            case 'codeseeker.searchView':
-                await vscode.commands.executeCommand('setContext', 'codeseeker.searchViewEnabled', isVisible);
-                break;
+    public handleViewVisibilityChange(viewId: string, isVisible: boolean): void {
+        if (isVisible) {
+            vscode.commands.executeCommand(`${viewId}.focus`);
+            // Update state
+            this.state.expandedViewId = viewId;
+            this.saveState();
+        } else if (this.state.expandedViewId === viewId) {
+            this.state.expandedViewId = undefined;
+            this.saveState();
         }
     }
 
-    public async showView(viewId: string): Promise<void> {
-        // First hide all views
-        await this.hideAllViews();
-        
-        // Then show the requested view
-        await vscode.commands.executeCommand('workbench.view.extension.codeseeker-sidebar');
-        await vscode.commands.executeCommand(`${viewId}.focus`);
-        
-        const viewKey = this.getViewKey(viewId);
-        if (viewKey) {
-            this.state[viewKey] = {
-                isVisible: true,
-                lastActiveTimestamp: Date.now()
-            };
-            await this.saveState();
-            
-            // Update context variable
-            await this.updateContextVariables(viewId, true);
-            
-            // Emit the view state change event
-            this._onViewStateChanged.fire(viewId);
+    public async handleSearchCommand(): Promise<void> {
+        try {
+            const isConfigured = await this.aiService.isConfigured();
+            if (!isConfigured) {
+                vscode.commands.executeCommand('codeseeker.modelSettings.focus');
+                vscode.window.showInformationMessage('Please configure AI models before searching');
+                return;
+            }
+            vscode.commands.executeCommand('codeseeker.searchView.focus');
+        } catch (error) {
+            console.error('Error handling search command:', error);
+            throw error;
         }
     }
 
-    private async hideAllViews(): Promise<void> {
-        for (const viewKey of Object.keys(this.state)) {
-            this.state[viewKey as keyof ExtensionState].isVisible = false;
-            const viewId = viewKey === 'modelSettings' ? 'codeseeker.modelSettings' : 'codeseeker.searchView';
-            await this.updateContextVariables(viewId, false);
-        }
-    }
-
-    public async hideView(viewId: string): Promise<void> {
-        const viewKey = this.getViewKey(viewId);
-        if (viewKey) {
-            this.state[viewKey].isVisible = false;
-            await this.saveState();
-            await this.updateContextVariables(viewId, false);
-            this._onViewStateChanged.fire(viewId);
-        }
-    }
-
-    public getViewState(viewId: string): ViewState | undefined {
-        const viewKey = this.getViewKey(viewId);
-        return viewKey ? this.state[viewKey] : undefined;
-    }
-
-    private getViewKey(viewId: string): keyof ExtensionState | null {
-        switch (viewId) {
-            case 'codeseeker.modelSettings':
-                return 'modelSettings';
-            case 'codeseeker.searchView':
-                return 'searchView';
-            default:
-                return null;
-        }
+    public async handleSettingsCommand(): Promise<void> {
+        vscode.commands.executeCommand('codeseeker.modelSettings.focus');
     }
 
     public async restoreState(): Promise<void> {
-        // Find the most recently active view
-        let mostRecentViewId: string | null = null;
-        let mostRecentTimestamp = 0;
-
-        for (const [key, value] of Object.entries(this.state)) {
-            if (value.isVisible && value.lastActiveTimestamp && value.lastActiveTimestamp > mostRecentTimestamp) {
-                mostRecentTimestamp = value.lastActiveTimestamp;
-                mostRecentViewId = key === 'modelSettings' ? 'codeseeker.modelSettings' : 'codeseeker.searchView';
+        try {
+            const isConfigured = await this.aiService.isConfigured();
+            
+            if (!isConfigured) {
+                vscode.commands.executeCommand('codeseeker.modelSettings.focus');
+                return;
             }
-        }
 
-        // Show the most recent view, or default to search view if none was active
-        if (mostRecentViewId) {
-            await this.showView(mostRecentViewId);
+            const viewToFocus = this.state.expandedViewId || 'codeseeker.searchView';
+            vscode.commands.executeCommand(`${viewToFocus}.focus`);
+        } catch (error) {
+            console.error('Error restoring state:', error);
+            throw error;
         }
-    }
-
-    public dispose() {
-        this._onViewStateChanged.dispose();
     }
 }

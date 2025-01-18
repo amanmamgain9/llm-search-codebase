@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { CodeSeekerViewProvider } from './ui/views/CodeSeekerViewProvider';
 import { ModelSettingsViewProvider } from './ui/views/ModelSettingsViewProvider';
-import { registerSearchCommands } from './commands/searchCommands';
+// import { registerSearchCommands } from './commands/searchCommands';
 import { ViewStateManager } from './services/viewStateManager';
 import { AIService } from './services/aiService';
-import { TopBarViewProvider } from './ui/views/TopBarViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize ViewStateManager
@@ -24,20 +23,21 @@ export function activate(context: vscode.ExtensionContext) {
         aiService
     );
 
-    const topbarViewProvider = new TopBarViewProvider(
-        context.extensionUri,
-        viewStateManager,
-        aiService
-    );
-
+    // Register view providers
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ModelSettingsViewProvider.viewType, modelSettingsProvider),
-        vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, searchProvider),
-        vscode.window.registerWebviewViewProvider(TopBarViewProvider.viewType, topbarViewProvider)
+        vscode.window.registerWebviewViewProvider(CodeSeekerViewProvider.viewType, searchProvider)
     );
 
-    // Register commands
-    registerSearchCommands(context);
+    // Register built-in commands
+    context.subscriptions.push(
+        vscode.commands.registerCommand('codeseeker.search', () => {
+            viewStateManager.handleSearchCommand();
+        })
+    );
+
+    // Register additional search commands
+    // registerSearchCommands(context);
 
     // Restore previous state
     viewStateManager.restoreState();

@@ -64,9 +64,9 @@ export class AIService {
             if (!ModelServiceFactory.isModelSupported(storedConfig.majorModel) || 
                 !ModelServiceFactory.isModelSupported(storedConfig.minorModel)) {
                 
-                const migratedConfig = this.migrateConfig(storedConfig);
-                await this.context.globalState.update(AIService.CONFIG_KEY, migratedConfig);
-                await this.initializeModels(migratedConfig);
+                // const migratedConfig = this.migrateConfig(storedConfig);
+                await this.context.globalState.update(AIService.CONFIG_KEY, storedConfig);
+                await this.initializeModels(storedConfig);
             } else {
                 await this.initializeModels(storedConfig);
             }
@@ -83,7 +83,7 @@ export class AIService {
         if (!ModelServiceFactory.isModelSupported(newConfig.minorModel)) {
             throw new Error(`Unsupported minor model: ${newConfig.minorModel}`);
         }
-
+        console.log("saving config", newConfig)
         await this.context.globalState.update(AIService.CONFIG_KEY, newConfig);
         await this.initializeModels(newConfig);
     }
@@ -95,14 +95,14 @@ export class AIService {
             // Initialize primary model
             this.primaryModel = ModelServiceFactory.createService(
                 newConfig.majorModel,
-                newConfig.majorApiKey
+                newConfig.majorModelApiKey
             );
 
             // Initialize secondary model or use primary if configured to use same model
             if (!newConfig.useSameModel) {
                 this.secondaryModel = ModelServiceFactory.createService(
                     newConfig.minorModel,
-                    newConfig.minorApiKey
+                    newConfig.minorModelApiKey
                 );
             } else {
                 this.secondaryModel = this.primaryModel;
@@ -119,9 +119,16 @@ export class AIService {
 
     public async isConfigured(): Promise<boolean> {
         await this.ensureConfigLoaded();
+        console.log(
+            "checking config",
+            this.config?.majorModelApiKey,
+            this.config?.useSameModel,
+            this.config?.minorModelApiKey
+
+        )
         return Boolean(
-            this.config?.majorApiKey && 
-            (this.config.useSameModel || this.config.minorApiKey)
+            this.config?.majorModelApiKey && 
+            (this.config.useSameModel || this.config.minorModelApiKey)
         );
     }
 

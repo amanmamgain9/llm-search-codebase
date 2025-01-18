@@ -28,7 +28,7 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
         await this._aiService.saveConfig(config);
 
         // After successful save, switch to the search view
-        await this._viewStateManager.showView('codeseeker.searchView');
+        // await this._viewStateManager.expandView('codeseeker.searchView');
     }
 
     public resolveWebviewView(
@@ -44,7 +44,6 @@ export class ModelSettingsViewProvider implements vscode.WebviewViewProvider {
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'webviewReady':

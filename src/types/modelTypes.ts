@@ -1,8 +1,8 @@
 export interface ModelConfig {
     majorModel: string;
     minorModel: string;
-    majorApiKey: string;
-    minorApiKey: string;
+    majorModelApiKey: string;
+    minorModelApiKey: string;
     useSameModel: boolean;
 }
 

@@ -33,7 +33,6 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'search':
