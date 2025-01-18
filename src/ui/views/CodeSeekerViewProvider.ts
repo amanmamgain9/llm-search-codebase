@@ -7,6 +7,8 @@ import { TokenAnalysisService } from '../../services/tokenAnalysisService';
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
     private _tokenAnalysisService: TokenAnalysisService;
+    private _totalTokens: number = 0;
+    private _analysisComplete: boolean = false;
     public static readonly viewType = 'codeseeker.searchView';
 
     constructor(
@@ -15,6 +17,15 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         private readonly _aiService: AIService
     ) {
         this._tokenAnalysisService = new TokenAnalysisService();
+        
+        // Listen for workspace folder changes
+        vscode.workspace.onDidChangeWorkspaceFolders(() => {
+            this._analysisComplete = false;
+            this._totalTokens = 0;
+            if (this._view) {
+                this.updateView();
+            }
+        });
     }
 
     private async analyzeProjectTokens() {
@@ -27,11 +38,29 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
             const projectPath = workspaceFolders[0].uri.fsPath;
             const { totalTokens, fileTokens } = await this._tokenAnalysisService.getProjectTokenCount(projectPath);
             
+            this._totalTokens = totalTokens;
+            this._analysisComplete = true;
+            
+            if (this._view) {
+                this.updateView();
+            }
+            
             console.log(`Total tokens in project: ${totalTokens}`);
-            // You might want to store this information or update the UI with it
         } catch (error) {
             console.error('Error analyzing project tokens:', error);
+            this._analysisComplete = false;
         }
+    }
+
+    private updateView() {
+        if (!this._view) return;
+        
+        if (!this._aiService.isConfigured()) {
+            this._view.webview.html = this._getUnconfiguredHtml();
+            return;
+        }
+
+        this._view.webview.html = this._getHtmlForWebview(this._view.webview);
     }
 
 
@@ -64,6 +93,9 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
                     if (data.value) {
                         vscode.commands.executeCommand('codeseeker.search', data.value);
                     }
+                    break;
+                case 'analyze':
+                    this.analyzeProjectTokens();
                     break;
             }
         });
@@ -99,18 +131,50 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>CodeSeeker Search</title>
+                <style>
+                    .container { padding: 10px; }
+                    .token-info { 
+                        margin: 10px 0;
+                        padding: 5px;
+                        background-color: var(--vscode-editor-background);
+                        border: 1px solid var(--vscode-editor-lineHighlightBorder);
+                    }
+                    .analyze-button {
+                        width: 100%;
+                        padding: 5px;
+                        margin: 10px 0;
+                    }
+                </style>
             </head>
             <body>
-                <div style="padding: 10px;">
-                    <input type="text" id="searchInput" placeholder="Enter your search query..." style="width: 100%; padding: 5px;">
-                    <button id="searchButton" style="margin-top: 10px; width: 100%; padding: 5px;">Search</button>
+                <div class="container">
+                    ${!this._analysisComplete ? `
+                        <button id="analyzeButton" class="analyze-button">Analyze Project Tokens</button>
+                    ` : `
+                        <div class="token-info">
+                            Total tokens in project: ${this._totalTokens}
+                        </div>
+                        <input type="text" id="searchInput" placeholder="Enter your search query..." style="width: 100%; padding: 5px;">
+                        <button id="searchButton" style="margin-top: 10px; width: 100%; padding: 5px;">Search</button>
+                    `}
                 </div>
                 <script>
                     const vscode = acquireVsCodeApi();
+                    
+                    const analyzeButton = document.getElementById('analyzeButton');
+                    if (analyzeButton) {
+                        analyzeButton.addEventListener('click', () => {
+                            vscode.postMessage({
+                                type: 'analyze'
+                            });
+                        });
+                    }
+
                     const searchInput = document.getElementById('searchInput');
                     const searchButton = document.getElementById('searchButton');
-
-                    searchButton.addEventListener('click', () => {
+                    
+                    if (searchButton) {
+                        searchButton.addEventListener('click', () => {
                         const query = searchInput.value;
                         if (query) {
                             vscode.postMessage({
