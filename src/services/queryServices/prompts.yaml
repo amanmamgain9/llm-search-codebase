@@ -1,0 +1,38 @@
+prompts:
+  fileDiscovery:
+    template: |
+      Find files relevant to this question: "${question}"
+      
+      Return your response in this format:
+      *FILE_SEARCH*
+      path: src/file/path
+      reason: Why this file is relevant
+      *END_FILE_SEARCH*
+
+      List multiple files using multiple blocks.
+
+  codeAnalysis:
+    template: |
+      Analyze this file for the question: "${question}"
+      FILE: ${filePath}
+      CONTENT:
+      ${fileContent}
+      
+      Return your response in this format:
+      *CODE_SECTION*
+      lines: start-end
+      code: The relevant code
+      explanation: Why this code matters
+      *END_CODE_SECTION*
+
+  finalAnswer:
+    template: |
+      Based on the analyzed code, answer this question: "${question}"
+      CODE_RESULTS: ${codeResults}
+      
+      Return your response in this format:
+      *ANSWER*
+      summary: Your main answer
+      details: Additional technical details
+      references: List of relevant code locations
+      *END_ANSWER*

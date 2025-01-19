@@ -46,7 +46,7 @@
           "type": "webview",
           "id": "codeseeker.searchView",
           "name": "CodeSeeker Search"
-        } 
+        }
       ]
     }
   },
@@ -59,14 +59,19 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "18.x",
+    "@types/node-fetch": "^2.6.12",
     "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
+    "node-fetch": "^3.3.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@vscode/codicons": "^0.0.35"
+    "@vscode/codicons": "^0.0.35",
+    "js-yaml": "^4.1.0",
+    "tiktoken": "^1.0.18"
   }
 }

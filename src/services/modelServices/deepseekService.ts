@@ -3,8 +3,8 @@ import { ModelResponse, IModelService, ModelPricing } from "../../types/modelTyp
 export class DeepseekService implements IModelService {
     private static readonly MODEL_PRICING: { [key: string]: ModelPricing } = {
         'deepseek-coder-33b-instruct': {
-            inputPricePerMillionTokens: 0.15,
-            outputPricePerMillionTokens: 0.15
+            inputPricePerMillionTokens: 0.14,
+            outputPricePerMillionTokens: 0.28
         },
         'deepseek-coder-6.7b-instruct': {
             inputPricePerMillionTokens: 0.10,
