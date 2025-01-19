@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import { ICodeSeekerViewProvider } from '../../types/interfaces';
 import { ViewStateManager } from '../../services/viewStateManager';
-import { AIService } from '../../services/aiService';
-import { TokenAnalysisService } from '../../services/tokenAnalysisService';
+import { AIService } from '../../services/aiServices/aiService';
 
 export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
     private _view?: vscode.WebviewView;
-    private _tokenAnalysisService: TokenAnalysisService;
     private _totalTokens: number = 0;
     private _analysisComplete: boolean = false;
     private _estimatedCost: number = 0;
@@ -17,7 +15,6 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
         private readonly _viewStateManager: ViewStateManager,
         private readonly _aiService: AIService
     ) {
-        this._tokenAnalysisService = new TokenAnalysisService();
         
         // Listen for workspace folder changes
         vscode.workspace.onDidChangeWorkspaceFolders(() => {
@@ -37,7 +34,7 @@ export class CodeSeekerViewProvider implements ICodeSeekerViewProvider {
             }
 
             const projectPath = workspaceFolders[0].uri.fsPath;
-            const { totalTokens, fileTokens } = await this._tokenAnalysisService.getProjectTokenCount(projectPath);
+            const  totalTokens  = await this._aiService.getTokenCount(projectPath);
             
             this._totalTokens = totalTokens;
             this._analysisComplete = true;

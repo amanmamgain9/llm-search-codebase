@@ -3,7 +3,7 @@ import { CodeSeekerViewProvider } from './ui/views/CodeSeekerViewProvider';
 import { ModelSettingsViewProvider } from './ui/views/ModelSettingsViewProvider';
 // import { registerSearchCommands } from './commands/searchCommands';
 import { ViewStateManager } from './services/viewStateManager';
-import { AIService } from './services/aiService';
+import { AIService } from './services/aiServices/aiService';
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize ViewStateManager

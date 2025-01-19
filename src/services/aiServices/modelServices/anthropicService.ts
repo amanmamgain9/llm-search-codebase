@@ -1,7 +1,7 @@
 import { ModelResponse,
     IModelService,
     ModelPricing
- } from "../../types/modelTypes";
+ } from "../../../types/modelTypes";
 
 export class AnthropicService implements IModelService {
     private static readonly MODEL_PRICING: { [key: string]: ModelPricing } = {

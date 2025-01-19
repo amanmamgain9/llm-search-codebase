@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { ModelResponse, ModelConfig, IModelService, ModelPricing } from '../types/modelTypes';
+import { ModelResponse, ModelConfig, IModelService, ModelPricing } from '../../types/modelTypes';
 import { ModelServiceFactory } from './modelServices/modelServiceFactory';
+import { TokenAnalysisService } from './tokenAnalysisService';
 
 export class AIService {
     private static instance: AIService;
@@ -10,8 +11,10 @@ export class AIService {
     
     private primaryModel?: IModelService;
     private secondaryModel?: IModelService;
+    private tokenService: TokenAnalysisService;
 
     private constructor(private readonly context: vscode.ExtensionContext) {
+        this.tokenService = new TokenAnalysisService();
         this.initializeConfig();
     }
 
@@ -64,7 +67,6 @@ export class AIService {
             if (!ModelServiceFactory.isModelSupported(storedConfig.majorModel) || 
                 !ModelServiceFactory.isModelSupported(storedConfig.minorModel)) {
                 
-                // const migratedConfig = this.migrateConfig(storedConfig);
                 await this.context.globalState.update(AIService.CONFIG_KEY, storedConfig);
                 await this.initializeModels(storedConfig);
             } else {
@@ -76,14 +78,13 @@ export class AIService {
     public async saveConfig(newConfig: ModelConfig): Promise<void> {
         await this.ensureConfigLoaded();
 
-        // Validate models before saving
         if (!ModelServiceFactory.isModelSupported(newConfig.majorModel)) {
             throw new Error(`Unsupported major model: ${newConfig.majorModel}`);
         }
         if (!ModelServiceFactory.isModelSupported(newConfig.minorModel)) {
             throw new Error(`Unsupported minor model: ${newConfig.minorModel}`);
         }
-        console.log("saving config", newConfig)
+        
         await this.context.globalState.update(AIService.CONFIG_KEY, newConfig);
         await this.initializeModels(newConfig);
     }
@@ -92,13 +93,11 @@ export class AIService {
         try {
             this.config = newConfig;
 
-            // Initialize primary model
             this.primaryModel = ModelServiceFactory.createService(
                 newConfig.majorModel,
                 newConfig.majorModelApiKey
             );
 
-            // Initialize secondary model or use primary if configured to use same model
             if (!newConfig.useSameModel) {
                 this.secondaryModel = ModelServiceFactory.createService(
                     newConfig.minorModel,
@@ -119,13 +118,6 @@ export class AIService {
 
     public async isConfigured(): Promise<boolean> {
         await this.ensureConfigLoaded();
-        console.log(
-            "checking config",
-            this.config?.majorModelApiKey,
-            this.config?.useSameModel,
-            this.config?.minorModelApiKey
-
-        )
         return Boolean(
             this.config?.majorModelApiKey && 
             (this.config.useSameModel || this.config.minorModelApiKey)
@@ -146,6 +138,39 @@ export class AIService {
             throw new Error('Secondary model not configured');
         }
         return this.secondaryModel.query(prompt);
+    }
+
+    // Token Analysis Methods
+    public async analyzeProjectTokens(projectPath: string): Promise<{ totalTokens: number; fileTokens: Map<string, number> }> {
+        try {
+            return await this.tokenService.getProjectTokenCount(projectPath);
+        } catch (error) {
+            throw new Error(`Failed to analyze project tokens: ${(error as Error).message}`);
+        }
+    }
+
+    public async addCustomCodeExtension(extension: string): Promise<void> {
+        await this.tokenService.addCodeExtension(extension);
+    }
+
+    public async estimateCost(tokenCount: number, isInput: boolean = true): Promise<number> {
+        if (!this.primaryModel) {
+            throw new Error('Primary model not configured');
+        }
+        const pricing = this.primaryModel.getPricing();
+        const pricePerToken = isInput ? 
+            pricing.inputPricePerMillionTokens / 1_000_000 : 
+            pricing.outputPricePerMillionTokens / 1_000_000;
+        return tokenCount * pricePerToken;
+    }
+
+    public async getTokenCount(text: string): Promise<number> {
+        try {
+            const result = await this.tokenService.getProjectTokenCount(text);
+            return result.totalTokens;
+        } catch (error) {
+            throw new Error(`Failed to count tokens: ${(error as Error).message}`);
+        }
     }
 
     public async testPrimaryModel(): Promise<boolean> {
@@ -176,5 +201,11 @@ export class AIService {
             throw new Error('Secondary model not configured');
         }
         return this.secondaryModel.getPricing();
+    }
+
+    public dispose(): void {
+        if (this.tokenService) {
+            this.tokenService.dispose();
+        }
     }
 }

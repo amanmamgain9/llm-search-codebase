@@ -1,6 +1,6 @@
 import { AnthropicService } from "./anthropicService";
 import { DeepseekService } from "./deepseekService";
-import { IModelService } from "../../types/modelTypes";
+import { IModelService } from "../../../types/modelTypes";
 
 export interface SupportedModel {
     id: string;

@@ -1,4 +1,4 @@
-import { ModelResponse, IModelService, ModelPricing } from "../../types/modelTypes";
+import { ModelResponse, IModelService, ModelPricing } from "../../../types/modelTypes";
 
 export class DeepseekService implements IModelService {
     private static readonly MODEL_PRICING: { [key: string]: ModelPricing } = {
